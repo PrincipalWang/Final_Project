@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Blood Pressure of SS_HS Rats</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: sans-serif; }
+    .line { fill: none; stroke-width: 1.5px; }
+  </style>
+</head>
+<body>
+  <h1>Blood Pressure of SS_HS Rats</h1>
+  <svg width="960" height="500"></svg>
+
+  <script>
+    const svg = d3.select("svg"); // select the SVG
+    const margin = {top: 20, right: 30, bottom: 30, left: 50}; // margins
+    const width = +svg.attr("width") - margin.left - margin.right; // inner width
+    const height = +svg.attr("height") - margin.top - margin.bottom; // inner height
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`); // drawing group
+
+    d3.json("final_rat_data.json").then(data => { // load JSON
+      const time = data.time; // get time array
+      const rats = Object.entries(data.SS_HS).slice(0, 3); // only 3 rats
+
+      const x = d3.scaleLinear() // x-axis scale
+        .domain(d3.extent(time)) // from min to max time
+        .range([0, width]);
+
+      const y = d3.scaleLinear() // y-axis scale
+        .domain([
+          d3.min(rats, ([, d]) => d3.min(d.values)), // min of all values
+          d3.max(rats, ([, d]) => d3.max(d.values))  // max of all values
+        ])
+        .nice()
+        .range([height, 0]);
+
+      const line = d3.line() // line generator
+        .x((d, i) => x(time[i])) // x = time
+        .y(d => y(d)); // y = value
+
+      g.append("g") // draw x axis
+        .attr("transform", `translate(0,${height})`) // move to bottom
+        .call(d3.axisBottom(x)); // create axis
+
+      g.append("g") // draw y axis
+        .call(d3.axisLeft(y)); // create axis
+
+      const tooltip = d3.select("body").append("div") // tooltip div
+        .style("position", "absolute")
+        .style("padding", "6px")
+        .style("background", "#eee")
+        .style("border", "1px solid #aaa")
+        .style("border-radius", "4px")
+        .style("font-size", "13px")
+        .style("pointer-events", "none")
+        .style("display", "none");
+
+      rats.forEach(([ratId, ratData], i) => { // loop over rats
+        g.append("path") // create path
+          .datum(ratData.values) // bind values
+          .attr("class", "line")
+          .attr("stroke", d3.schemeCategory10[i % 10]) // color
+          .attr("d", line) // path drawing
+          .on("mouseover", function () {
+            d3.select(this).attr("stroke-width", 4); // highlight
+            tooltip.style("display", "block")
+              .html(`<b>${ratId}</b><br>slope: ${ratData.slope}`); // show slope
+          })
+          .on("mousemove", function (event) {
+            tooltip.style("left", (event.pageX + 10) + "px") // follow mouse
+              .style("top", (event.pageY - 20) + "px");
+          })
+          .on("mouseout", function () {
+            d3.select(this).attr("stroke-width", 1.5); // reset line
+            tooltip.style("display", "none"); // hide tooltip
+          });
+      });
+    });
+  </script>
+
+  <h2>Writeup</h2>
+    <p><strong>What have you done so far?</strong></p>
+    <p>
+      We chose a rat blood pressure dataset.<br> 
+      We processed the raw text files into JSON.<br> 
+      We downsampled the data to 5Hz.<br> 
+      We made an interactive line chart using D3.js.<br> 
+    </p>
+
+    <p><strong>What will be the most challenging part of your project to design and why?</strong></p>
+    <p>
+      Adding group switching will be hard.<br>   
+      Too many lines make the chart messy.<br>   
+      Keeping the chart clean needs careful layout.<br>   
+      Also, some rats have noisy data.
+    </p>
+
+</body>
+</html>
+
