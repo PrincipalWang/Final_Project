@@ -1,102 +1,355 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Blood Pressure of SS_HS Rats</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body { font-family: sans-serif; }
-    .line { fill: none; stroke-width: 1.5px; }
-  </style>
+<meta charset="UTF-8">
+<title>Salt & Blood-Pressure (interactive)</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<style>
+  body {font-family:Arial, sans-serif; margin:20px; background:#f8f9fa;}
+  .container   {max-width:1200px; margin:auto; background:#fff; padding:20px;
+                border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.1);}
+  h1           {text-align:center; color:#2c3e50; margin-bottom:10px;}
+  .subtitle    {text-align:center; color:#7f8c8d; margin-bottom:25px;}
+
+  /* ---- buttons ---- */
+  .controls {text-align:center; margin-bottom:18px;}
+  .btn {padding:10px 22px; margin:4px; border:none; border-radius:25px;
+        font-weight:bold; cursor:pointer; transition:.2s;}
+  .btn-high-salt {background:linear-gradient(135deg,#e74c3c,#c0392b); color:#fff;}
+  .btn-low-salt  {background:linear-gradient(135deg,#27ae60,#229954); color:#fff;}
+  .btn-both      {background:linear-gradient(135deg,#3498db,#2980b9); color:#fff;}
+  .btn.active    {transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.2);}
+
+  /* ---- time slider ---- */
+  .time-controls {
+    text-align:center; 
+    margin:15px 0; 
+    padding:15px; 
+    background:#f8f9fa; 
+    border-radius:8px;
+  }
+  .slider-container {
+    max-width:600px; 
+    margin:0 auto; 
+    position:relative;
+  }
+  .time-slider {
+    width:100%; 
+    height:8px; 
+    background:#ddd; 
+    border-radius:4px; 
+    outline:none; 
+    cursor:pointer;
+    -webkit-appearance:none;
+  }
+  .time-slider::-webkit-slider-thumb {
+    -webkit-appearance:none; 
+    width:20px; 
+    height:20px; 
+    background:#3498db; 
+    border-radius:50%; 
+    cursor:pointer;
+  }
+  .time-slider::-moz-range-thumb {
+    width:20px; 
+    height:20px; 
+    background:#3498db; 
+    border-radius:50%; 
+    cursor:pointer; 
+    border:none;
+  }
+  .slider-labels {
+    display:flex; 
+    justify-content:space-between; 
+    font-size:12px; 
+    color:#666; 
+    margin-top:5px;
+  }
+  .time-display {
+    font-size:16px; 
+    font-weight:bold; 
+    color:#2c3e50; 
+    margin-bottom:10px;
+  }
+
+  /* ---- line styling ---- */
+  .rat-line       {fill:none; stroke-width:2px; opacity:.8; pointer-events:stroke; cursor:pointer;}
+  .rat-line.hover {stroke-width:4px; opacity:1;}
+  .rat-line.isolated {stroke-width:4px; opacity:1;}
+  .rat-line.dimmed {opacity:0.15;}
+
+  /* ---- stats panel ---- */
+  .stats-panel {display:flex; justify-content:space-around; background:#ecf0f1;
+                padding:14px; border-radius:8px; margin-top:18px;}
+  .stat-box   {text-align:center;}
+  .stat-value {font-size:22px; font-weight:bold; color:#2c3e50;}
+  .stat-label {font-size:11px; text-transform:uppercase; color:#7f8c8d;}
+  
+  /* ---- tooltip ---- */
+  .tooltip {position:absolute; background:rgba(0,0,0,.85); color:#fff;
+            padding:8px 10px; border-radius:6px; font-size:13px;
+            pointer-events:none; opacity:0; transition:opacity .15s;}
+</style>
 </head>
+
 <body>
-  <h1>Blood Pressure of SS_HS Rats</h1>
+<div class="container">
+  <h1>How Salt Affects Blood Pressure</h1>
+  <p class="subtitle">Interactive exploration of blood-pressure in laboratory rats</p>
+
+  <div class="controls">
+    <button class="btn btn-high-salt" id="btn-high">High Salt</button>
+    <button class="btn btn-low-salt"  id="btn-low">Low Salt</button>
+    <button class="btn btn-both active" id="btn-both">Both</button>
+  </div>
+
+  <div class="time-controls">
+    <div class="time-display" id="time-display">Showing: Full Timeline (0 - 10 minutes)</div>
+    <div class="slider-container">
+      <input type="range" id="time-slider" class="time-slider" 
+             min="15" max="100" value="100" step="5">
+      <div class="slider-labels">
+        <span>1.5 min</span>
+        <span>3.5 min</span>
+        <span>5.5 min</span>
+        <span>7.5 min</span>
+        <span>10 min</span>
+      </div>
+    </div>
+  </div>
+
   <svg width="960" height="500"></svg>
 
-  <script>
-    const svg = d3.select("svg"); // select the SVG
-    const margin = {top: 20, right: 30, bottom: 30, left: 50}; // margins
-    const width = +svg.attr("width") - margin.left - margin.right; // inner width
-    const height = +svg.attr("height") - margin.top - margin.bottom; // inner height
-    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`); // drawing group
+  <div class="stats-panel">
+    <div class="stat-box">
+      <div class="stat-value" id="avg-pressure">--</div>
+      <div class="stat-label">Average (mmHg)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="pressure-range">--</div>
+      <div class="stat-label">Range (mmHg)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="num-rats">--</div>
+      <div class="stat-label">Rats Shown</div>
+    </div>
+  </div>
+</div>
 
-    d3.json("final_rat_data.json").then(data => { // load JSON
-      const time = data.time; // get time array
-      const rats = Object.entries(data.SS_HS).slice(0, 3); // only 3 rats
+<!-- ---------- Tooltip ---------- -->
+<div class="tooltip" id="tooltip"></div>
 
-      const x = d3.scaleLinear() // x-axis scale
-        .domain(d3.extent(time)) // from min to max time
-        .range([0, width]);
+<script>
+/* === layout === */
+const svg    = d3.select("svg"),
+      margin = {top:40,right:60,bottom:60,left:80},
+      width  = +svg.attr("width")  - margin.left - margin.right,
+      height = +svg.attr("height") - margin.top  - margin.bottom,
+      g      = svg.append("g").attr("transform",`translate(${margin.left},${margin.top})`);
 
-      const y = d3.scaleLinear() // y-axis scale
-        .domain([
-          d3.min(rats, ([, d]) => d3.min(d.values)), // min of all values
-          d3.max(rats, ([, d]) => d3.max(d.values))  // max of all values
-        ])
-        .nice()
-        .range([height, 0]);
+/* === colors === */
+const schemes = {
+  SS_HS      : d3.schemeReds[9].slice(3),
+  SS_LS      : d3.schemeGreens[9].slice(3),
+  SSBN13_HS  : d3.schemeOranges[9].slice(3),
+  SSBN13_LS  : d3.schemeBlues[9].slice(3)
+};
+const ratColor = (grp,i) => (schemes[grp]||d3.schemeCategory10)[i % 6];
 
-      const line = d3.line() // line generator
-        .x((d, i) => x(time[i])) // x = time
-        .y(d => y(d)); // y = value
+/* === state === */
+let view = "both";
+let allData = null;
+let timeRange = 100; // percentage of timeline to show (starts at 100%, min is 15%)
+let isolatedRat = null; // track which rat is isolated
 
-      g.append("g") // draw x axis
-        .attr("transform", `translate(0,${height})`) // move to bottom
-        .call(d3.axisBottom(x)); // create axis
+/* === tooltip === */
+const tooltip = d3.select("#tooltip");
 
-      g.append("g") // draw y axis
-        .call(d3.axisLeft(y)); // create axis
+/* === event helpers === */
+function showTooltip(evt, d) {
+  d3.select(evt.currentTarget).classed("hover", true).raise();
+  tooltip.html(`<strong>${d.group.includes('HS')?'High':'Low'} Salt</strong><br/>
+                ${d.id}<br/>
+                <em>Click to isolate this rat</em>`)
+         .style("left", `${evt.pageX+12}px`)
+         .style("top",  `${evt.pageY-28}px`)
+         .style("opacity", 1);
+}
+function hideTooltip(evt) {
+  d3.select(evt.currentTarget).classed("hover", false);
+  tooltip.style("opacity", 0);
+}
 
-      const tooltip = d3.select("body").append("div") // tooltip div
-        .style("position", "absolute")
-        .style("padding", "6px")
-        .style("background", "#eee")
-        .style("border", "1px solid #aaa")
-        .style("border-radius", "4px")
-        .style("font-size", "13px")
-        .style("pointer-events", "none")
-        .style("display", "none");
+function clickRat(evt, d) {
+  if (isolatedRat === d.id) {
+    // Un-isolate: show all rats
+    isolatedRat = null;
+    d3.selectAll(".rat-line")
+      .classed("isolated", false)
+      .classed("dimmed", false)
+      .style("opacity", 0.8);
+  } else {
+    // Isolate this rat: dim others
+    isolatedRat = d.id;
+    d3.selectAll(".rat-line")
+      .classed("isolated", false)
+      .classed("dimmed", true)
+      .style("opacity", 0.15);
+    
+    d3.select(evt.currentTarget)
+      .classed("isolated", true)
+      .classed("dimmed", false)
+      .style("opacity", 1);
+  }
+}
 
-      rats.forEach(([ratId, ratData], i) => { // loop over rats
-        g.append("path") // create path
-          .datum(ratData.values) // bind values
-          .attr("class", "line")
-          .attr("stroke", d3.schemeCategory10[i % 10]) // color
-          .attr("d", line) // path drawing
-          .on("mouseover", function () {
-            d3.select(this).attr("stroke-width", 4); // highlight
-            tooltip.style("display", "block")
-              .html(`<b>${ratId}</b><br>slope: ${ratData.slope}`); // show slope
-          })
-          .on("mousemove", function (event) {
-            tooltip.style("left", (event.pageX + 10) + "px") // follow mouse
-              .style("top", (event.pageY - 20) + "px");
-          })
-          .on("mouseout", function () {
-            d3.select(this).attr("stroke-width", 1.5); // reset line
-            tooltip.style("display", "none"); // hide tooltip
-          });
-      });
-    });
-  </script>
+/* === main === */
+d3.json("final_rat_data.json").then(data => {
+  allData = data;
+  initAxes();
+  initButtons();
+  initTimeSlider();
+  update();        // initial draw
+});
 
-  <h2>Writeup</h2>
-    <p><strong>What have you done so far?</strong></p>
-    <p>
-      We chose a rat blood pressure dataset.<br> 
-      We processed the raw text files into JSON.<br> 
-      We downsampled the data to 5Hz.<br> 
-      We made an interactive line chart using D3.js.<br> 
-    </p>
+/* ---------- axes ---------- */
+function initAxes() {
+  g.append("g").attr("class","x-axis")
+    .attr("transform",`translate(0,${height})`);
+  g.append("g").attr("class","y-axis");
 
-    <p><strong>What will be the most challenging part of your project to design and why?</strong></p>
-    <p>
-      Adding group switching will be hard.<br>   
-      Too many lines make the chart messy.<br>   
-      Keeping the chart clean needs careful layout.<br>   
-      Also, some rats have noisy data.
-    </p>
+  g.append("text")
+    .attr("transform","rotate(-90)")
+    .attr("x",-height/2).attr("y",-margin.left+20)
+    .attr("text-anchor","middle").style("font-weight","bold")
+    .text("Blood Pressure (mmHg)");
 
+  g.append("text")
+    .attr("x", width/2).attr("y", height+45)
+    .attr("text-anchor","middle").style("font-weight","bold")
+    .text("Time");
+}
+
+/* ---------- buttons ---------- */
+function initButtons() {
+  d3.select("#btn-high").on("click",()=>switchView("high"));
+  d3.select("#btn-low") .on("click",()=>switchView("low"));
+  d3.select("#btn-both").on("click",()=>switchView("both"));
+}
+function switchView(v) {
+  view = v;
+  isolatedRat = null; // reset isolation when switching views
+  d3.selectAll(".btn").classed("active",false);
+  d3.select(`#btn-${v==="high"?"high":v==="low"?"low":"both"}`)
+    .classed("active",true);
+  update();
+}
+
+/* ---------- time slider ---------- */
+function initTimeSlider() {
+  d3.select("#time-slider").on("input", function() {
+    timeRange = +this.value;
+    updateTimeDisplay();
+    update();
+  });
+}
+
+function updateTimeDisplay() {
+  const maxMinutes = Math.round(allData.time[allData.time.length - 1] / 60);
+  const currentMinutes = Math.round((maxMinutes * timeRange) / 100);
+  
+  if (timeRange === 100) {
+    d3.select("#time-display").text(`Showing: Full Timeline (0 - ${maxMinutes} minutes)`);
+  } else {
+    d3.select("#time-display").text(`Showing: 0 - ${currentMinutes} minutes`);
+  }
+}
+
+/* ---------- draw/update ---------- */
+function update() {
+  /* ---- decide which rats ---- */
+  const groups = view==="high" ? ["SS_HS","SSBN13_HS"]
+               : view==="low"  ? ["SS_LS","SSBN13_LS"]
+               :                 ["SS_HS","SS_LS","SSBN13_HS","SSBN13_LS"];
+
+const buckets = groups.map(grp =>
+  Object.entries(allData[grp])
+        .map(([id, rat]) => ({
+            id:`${grp}_${id}`, group:grp,
+            values: rat.values.filter((_,k)=>k%20===0)
+        }))
+);
+
+// 2. round-robin pull items until you have 4
+let rats = [];
+let idx = 0;
+while (rats.length < 4) {
+  buckets.forEach(b => {
+    if (b[idx]) rats.push(b[idx]);
+  });
+  idx++;
+}
+
+  /* ---- scales ---- */
+  const fullTime = allData.time.filter((_,k)=>k%20===0);
+  const maxTimeIndex = Math.floor((fullTime.length * timeRange) / 100);
+  const time = fullTime.slice(0, maxTimeIndex);
+  
+  const x = d3.scaleLinear().domain([0, time[time.length - 1] || 0]).range([0,width]);
+  const y = d3.scaleLinear()
+             .domain(d3.extent(rats.flatMap(r=>r.values))).nice()
+             .range([height,0]);
+
+  g.select(".x-axis").transition().call(
+    d3.axisBottom(x).tickFormat(d=>`${Math.round(d/60)} min`));
+  g.select(".y-axis").transition().call(d3.axisLeft(y));
+
+  /* ---- line generator ---- */
+  const line = d3.line()
+                 .x((d,i)=>x(time[i]))
+                 .y(d=>y(d))
+                 .curve(d3.curveMonotoneX);
+
+  /* ---- data join ---- */
+  const sel = g.selectAll(".rat-line").data(rats, d=>d.id);
+
+  sel.exit().transition().style("opacity",0).remove();
+
+  const enter = sel.enter().append("path")
+        .attr("class","rat-line")
+        .style("opacity",0)
+        .on("mouseover",showTooltip)
+        .on("mouseout", hideTooltip)
+        .on("click", clickRat);
+
+  enter.merge(sel)
+       .attr("stroke",(d,i)=>ratColor(d.group,i))
+       .attr("d",d=>line(d.values))
+       .transition().duration(400)
+       .style("opacity", d => {
+         // Maintain isolation state if rat is still present
+         if (isolatedRat && d.id !== isolatedRat) return 0.15;
+         if (isolatedRat && d.id === isolatedRat) return 1;
+         return 0.8;
+       })
+       .on("end", function(d) {
+         // Apply classes after transition
+         if (isolatedRat && d.id !== isolatedRat) {
+           d3.select(this).classed("dimmed", true);
+         } else if (isolatedRat && d.id === isolatedRat) {
+           d3.select(this).classed("isolated", true);
+         }
+       });
+
+  /* ---- stats ---- */
+  const vals   = rats.flatMap(r=>r.values),
+        avg    = vals.length ? d3.mean(vals).toFixed(1) : 0,
+        range  = vals.length ? (d3.max(vals)-d3.min(vals)).toFixed(1) : 0;
+  d3.select("#avg-pressure")  .text(`${avg}`);
+  d3.select("#pressure-range").text(`${range}`);
+  d3.select("#num-rats")      .text(rats.length);
+}
+</script>
 </body>
 </html>
-
