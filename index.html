@@ -169,28 +169,13 @@ const tooltip = d3.select("#tooltip");
 /* === event helpers === */
 function showTooltip(evt, d) {
   d3.select(evt.currentTarget).classed("hover", true).raise();
-
-  const [mx] = d3.pointer(evt, g.node());
-
-  const fullTime = allData.time.filter((_, k) => k % 20 === 0);
-  const maxTimeIndex = Math.floor((fullTime.length * timeRange) / 100);
-  const time = fullTime.slice(0, maxTimeIndex);
-
-  const x = d3.scaleLinear().domain([0, time[time.length - 1]]).range([0, width]);
-  const invTime = x.invert(mx);
-  const timeIndex = d3.bisectLeft(time, invTime);
-  const bpValue = d.values[timeIndex]?.toFixed(1);
-  const timeMin = (time[timeIndex] / 60).toFixed(1);
-
-  tooltip.html(`<strong>${d.group.includes('HS') ? 'High' : 'Low'} Salt</strong><br/>
+  tooltip.html(`<strong>${d.group.includes('HS')?'High':'Low'} Salt</strong><br/>
                 ${d.id}<br/>
-                ${timeMin} min, ${bpValue} mmHg<br/>
                 <em>Click to isolate this rat</em>`)
-         .style("left", `${evt.pageX + 12}px`)
-         .style("top", `${evt.pageY - 28}px`)
+         .style("left", `${evt.pageX+12}px`)
+         .style("top",  `${evt.pageY-28}px`)
          .style("opacity", 1);
 }
-
 function hideTooltip(evt) {
   d3.select(evt.currentTarget).classed("hover", false);
   tooltip.style("opacity", 0);
@@ -296,18 +281,12 @@ const buckets = groups.map(grp =>
         }))
 );
 
+// 2. round-robin pull items until you have 4
 let rats = [];
 let idx = 0;
-while ((view === "both" && rats.length < 4) || (view !== "both" && rats.length < 2)) {
-  groups.forEach(grp => {
-    const keys = Object.keys(allData[grp]);
-    if (idx < keys.length) {
-      rats.push({
-        id: `${grp}_${keys[idx]}`,
-        group: grp,
-        values: allData[grp][keys[idx]].values.filter((_, k) => k % 20 === 0)
-      });
-    }
+while (rats.length < 4) {
+  buckets.forEach(b => {
+    if (b[idx]) rats.push(b[idx]);
   });
   idx++;
 }
@@ -345,7 +324,7 @@ while ((view === "both" && rats.length < 4) || (view !== "both" && rats.length <
         .on("click", clickRat);
 
   enter.merge(sel)
-       .attr("stroke",(d,i)=> d.id === "Average" ? "#000" : ratColor(d.group,i))
+       .attr("stroke",(d,i)=>ratColor(d.group,i))
        .attr("d",d=>line(d.values))
        .transition().duration(400)
        .style("opacity", d => {
