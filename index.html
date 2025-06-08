@@ -109,7 +109,7 @@
   <div class="controls">
     <button class="btn btn-high-salt" id="btn-high">High Salt Diet</button>
     <button class="btn btn-low-salt"  id="btn-low">Low Salt Diet</button>
-    <button class="btn btn-both active" id="btn-both">Both Diet</button>
+    <button class="btn btn-both active" id="btn-both">Both Diets</button>
   </div>
 
   <div class="controls" id="rat-index-container" style="display: none;">
@@ -123,20 +123,7 @@
   </select>
 </div>
 
-  <div class="time-controls">
-    <div class="time-display" id="time-display">Showing: Full Timeline (0 - 10 minutes)</div>
-    <div class="slider-container">
-      <input type="range" id="time-slider" class="time-slider" 
-             min="15" max="100" value="100" step="5">
-      <div class="slider-labels">
-        <span>1.5 min</span>
-        <span>3.5 min</span>
-        <span>5.5 min</span>
-        <span>7.5 min</span>
-        <span>10 min</span>
-      </div>
-    </div>
-  </div>
+
 
   
 
@@ -167,6 +154,35 @@
   <div class="plot">
     <svg width="960" height="500"></svg>
   </div>
+
+    <div class="time-controls">
+    <div class="time-display" id="time-display">Showing: Full Timeline (0 - 10 minutes)</div>
+    <div class="slider-container">
+      <input type="range" id="time-slider" class="time-slider" 
+             min="15" max="100" value="100" step="5">
+      <div class="slider-labels">
+        <span>1.5 min</span>
+        <span>3.5 min</span>
+        <span>5.5 min</span>
+        <span>7.5 min</span>
+        <span>10 min</span>
+      </div>
+    </div>
+  </div>
+
+
+  <footer>
+    <p style="text-align:center; font-size:12px; color:#666;">
+      Visualization by John Collins, Chen Wang, and Michael Yang
+      <br>
+      <a href="https://github.com/PrincipalWang/Final_Project" target="_blank">GitHub Repo</a>
+      |
+      Data from <a href="https://physionet.org/content/bpssrat/1.0.0/" target="_blank">PhysioNet</a>
+      <br>
+      Originally published in <a href="http://physiolgenomics.physiology.org/content/42/1/23.abstract" target="_blank">Bugenhagen SM, Cowley AW Jr, Beard DA. Identifying physiological origins of baroreflex dysfunction in salt-sensitive hypertension in the Dahl SS rat. Physiological Genomics 42:23-41 (2010).</a>
+      
+      
+  </footer>
 
 
 </div>
