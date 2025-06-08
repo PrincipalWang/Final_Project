@@ -104,6 +104,29 @@
     <button class="btn btn-both active" id="btn-both">Both</button>
   </div>
 
+  <div id="rat-selector" style="text-align:center; margin-bottom:20px; display:none;">
+    <label>SS_HS Rat:</label>
+    <select id="sel-SS_HS">
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option>
+    </select>
+    <label>SS_LS Rat:</label>
+    <select id="sel-SS_LS">
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option>
+    </select>
+    <label>SSBN13_HS Rat:</label>
+    <select id="sel-SSBN13_HS">
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option>
+    </select>
+    <label>SSBN13_LS Rat:</label>
+    <select id="sel-SSBN13_LS">
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option>
+    </select>
+  </div>
+
   <div class="time-controls">
     <div class="time-display" id="time-display">Showing: Full Timeline (0 - 10 minutes)</div>
     <div class="slider-container">
@@ -226,6 +249,9 @@ d3.json("final_rat_data.json").then(data => {
   allData = data;
   initAxes();
   initButtons();
+  ["#sel-SS_HS", "#sel-SS_LS", "#sel-SSBN13_HS", "#sel-SSBN13_LS"].forEach(id => {
+    d3.select(id).on("change", update);
+  });
   initTimeSlider();
   update();        // initial draw
 });
@@ -257,9 +283,13 @@ function initButtons() {
 function switchView(v) {
   view = v;
   isolatedRat = null; // reset isolation when switching views
-  d3.selectAll(".btn").classed("active",false);
-  d3.select(`#btn-${v==="high"?"high":v==="low"?"low":"both"}`)
-    .classed("active",true);
+  d3.selectAll(".btn").classed("active", false);
+  d3.select(`#btn-${v==="high" ? "high" : v==="low" ? "low" : "both"}`)
+    .classed("active", true);
+
+  // Show/hide selector
+  d3.select("#rat-selector").style("display", v === "both" ? "block" : "none");
+
   update();
 }
 
@@ -290,22 +320,41 @@ function update() {
                : view==="low"  ? ["SS_LS","SSBN13_LS"]
                :                 ["SS_HS","SS_LS","SSBN13_HS","SSBN13_LS"];
 
-const buckets = groups.map(grp =>
-  Object.entries(allData[grp])
-        .map(([id, rat]) => ({
-            id:`${grp}_${id}`, group:grp,
-            values: rat.values.filter((_,k)=>k%20===0)
-        }))
-);
-
-// 2. round-robin pull items until you have 4
 let rats = [];
-let idx = 0;
-while (rats.length < 4) {
-  buckets.forEach(b => {
-    if (b[idx]) rats.push(b[idx]);
+if (view === "both") {
+  const ids = [
+    { group: "SS_HS",      selector: "#sel-SS_HS" },
+    { group: "SS_LS",      selector: "#sel-SS_LS" },
+    { group: "SSBN13_HS",  selector: "#sel-SSBN13_HS" },
+    { group: "SSBN13_LS",  selector: "#sel-SSBN13_LS" }
+  ];
+
+  ids.forEach(({ group, selector }) => {
+    const chosen = d3.select(selector).node().value;
+    const rat = allData[group][chosen];
+    if (rat) {
+      rats.push({
+        id: `${group}_${chosen}`, group,
+        values: rat.values.filter((_,k)=>k%20===0)
+      });
+    }
   });
-  idx++;
+} else {
+  const buckets = groups.map(grp =>
+    Object.entries(allData[grp])
+          .map(([id, rat]) => ({
+              id:`${grp}_${id}`, group:grp,
+              values: rat.values.filter((_,k)=>k%20===0)
+          }))
+  );
+
+  let idx = 0;
+  while (rats.length < (view === "high" || view === "low" ? 2 : 4)) {
+    buckets.forEach(b => {
+      if (b[idx]) rats.push(b[idx]);
+    });
+    idx++;
+  }
 }
 
   /* ---- scales ---- */
