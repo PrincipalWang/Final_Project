@@ -6,26 +6,26 @@
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
 <style>
-  body {font-family:Arial, sans-serif; margin:20px; background:#f8f9fa;}
+  body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:20px; background:gray;}
   .container   {max-width:1200px; margin:auto; background:#fff; padding:20px;
                 border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.1);}
   h1           {text-align:center; color:#2c3e50; margin-bottom:10px;}
-  .subtitle    {text-align:center; color:#7f8c8d; margin-bottom:25px;}
+  .subtitle    {text-align:center; color:#2c3e50; margin-bottom:25px;}
 
   /* ---- buttons ---- */
-  .controls {text-align:center; margin-bottom:18px;}
+  .controls {text-align:center; margin-bottom:0px;}
   .btn {padding:10px 22px; margin:4px; border:none; border-radius:25px;
         font-weight:bold; cursor:pointer; transition:.2s;}
-  .btn-high-salt {background:linear-gradient(135deg,#e74c3c,#c0392b); color:#fff;}
-  .btn-low-salt  {background:linear-gradient(135deg,#27ae60,#229954); color:#fff;}
-  .btn-both      {background:linear-gradient(135deg,#3498db,#2980b9); color:#fff;}
-  .btn.active    {transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.2);}
+  .btn-high-salt {background:linear-gradient(135deg,orange,crimson); color:#fff;}
+  .btn-low-salt  {background:linear-gradient(135deg,cyan,navy); color:#fff;}
+  .btn-both      {background:linear-gradient(135deg,crimson,orange,cyan, navy); color:#fff;}
+  .btn.active    {transform:translateY(-1px); box-shadow:0 4px 6px rgba(0,0,0,.4);}
 
   /* ---- time slider ---- */
   .time-controls {
     text-align:center; 
-    margin:15px 0; 
-    padding:15px; 
+    margin:10px 0; 
+    padding:10px; 
     background:#f8f9fa; 
     border-radius:8px;
   }
@@ -84,24 +84,32 @@
                 padding:14px; border-radius:8px; margin-top:18px;}
   .stat-box   {text-align:center;}
   .stat-value {font-size:22px; font-weight:bold; color:#2c3e50;}
-  .stat-label {font-size:11px; text-transform:uppercase; color:#7f8c8d;}
+  .stat-label {font-size:11px; text-transform:uppercase; color:#2c3e50;}
   
   /* ---- tooltip ---- */
   .tooltip {position:absolute; background:rgba(0,0,0,.85); color:#fff;
             padding:8px 10px; border-radius:6px; font-size:13px;
             pointer-events:none; opacity:0; transition:opacity .15s;}
+
+
+
+  /* ---- plot ---- */
+  .plot {
+    text-align:center;
+    width:100%;
+  }
 </style>
 </head>
 
 <body>
 <div class="container">
-  <h1>How Salt Affects Blood Pressure</h1>
-  <p class="subtitle">Interactive exploration of blood-pressure in laboratory rats</p>
+  <h1>Genetic Engineering Can't Save You From Salt</h1>
+  <p class="subtitle">Interactive exploration of how salt affects blood pressure in laboratory rats</p>
 
   <div class="controls">
-    <button class="btn btn-high-salt" id="btn-high">High Salt</button>
-    <button class="btn btn-low-salt"  id="btn-low">Low Salt</button>
-    <button class="btn btn-both active" id="btn-both">Both</button>
+    <button class="btn btn-high-salt" id="btn-high">High Salt Diet</button>
+    <button class="btn btn-low-salt"  id="btn-low">Low Salt Diet</button>
+    <button class="btn btn-both active" id="btn-both">Both Diet</button>
   </div>
 
   <div class="controls" id="rat-index-container" style="display: none;">
@@ -130,12 +138,20 @@
     </div>
   </div>
 
-  <svg width="960" height="500"></svg>
+  
 
   <div class="stats-panel">
     <div class="stat-box">
-      <div class="stat-value" id="avg-pressure">--</div>
+      <div class="stat-value" id="pressure-avg">--</div>
       <div class="stat-label">Average (mmHg)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="pressure-min">--</div>
+      <div class="stat-label">Minimum (mmHg)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="pressure-max">--</div>
+      <div class="stat-label">Maximum (mmHg)</div>
     </div>
     <div class="stat-box">
       <div class="stat-value" id="pressure-range">--</div>
@@ -146,6 +162,13 @@
       <div class="stat-label">Rats Shown</div>
     </div>
   </div>
+
+  
+  <div class="plot">
+    <svg width="960" height="500"></svg>
+  </div>
+
+
 </div>
 
 <!-- ---------- Tooltip ---------- -->
@@ -162,7 +185,7 @@ const svg    = d3.select("svg"),
 /* === colors === */
 const schemes = {
   SS_HS      : d3.schemeReds[9].slice(3),
-  SS_LS      : d3.schemeGreens[9].slice(3),
+  SS_LS      : d3.schemeBlues[9].slice(3),
   SSBN13_HS  : d3.schemeOranges[9].slice(3),
   SSBN13_LS  : d3.schemeBlues[9].slice(3)
 };
@@ -256,7 +279,7 @@ function initAxes() {
   g.append("text")
     .attr("x", width/2).attr("y", height+45)
     .attr("text-anchor","middle").style("font-weight","bold")
-    .text("Time");
+    .text("Time (minutes)");
 }
 
 /* ---------- buttons ---------- */
@@ -389,8 +412,12 @@ if (view === "both") {
   /* ---- stats ---- */
   const vals   = rats.flatMap(r=>r.values),
         avg    = vals.length ? d3.mean(vals).toFixed(1) : 0,
+        min    = vals.length ? d3.min(vals).toFixed(1) : 0,
+        max    = vals.length ? d3.max(vals).toFixed(1) : 0,
         range  = vals.length ? (d3.max(vals)-d3.min(vals)).toFixed(1) : 0;
-  d3.select("#avg-pressure")  .text(`${avg}`);
+  d3.select("#pressure-avg")  .text(`${avg}`);
+  d3.select("#pressure-min")  .text(`${min}`);
+  d3.select("#pressure-max")  .text(`${max}`);
   d3.select("#pressure-range").text(`${range}`);
   d3.select("#num-rats")      .text(rats.length);
 }
