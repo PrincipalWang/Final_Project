@@ -169,13 +169,30 @@ const tooltip = d3.select("#tooltip");
 /* === event helpers === */
 function showTooltip(evt, d) {
   d3.select(evt.currentTarget).classed("hover", true).raise();
-  tooltip.html(`<strong>${d.group.includes('HS')?'High':'Low'} Salt</strong><br/>
+
+  // 获取鼠标在图表中的位置
+  const [mx] = d3.pointer(evt, g.node());
+
+  // 时间范围和比例尺
+  const fullTime = allData.time.filter((_, k) => k % 20 === 0);
+  const maxTimeIndex = Math.floor((fullTime.length * timeRange) / 100);
+  const time = fullTime.slice(0, maxTimeIndex);
+
+  const x = d3.scaleLinear().domain([0, time[time.length - 1]]).range([0, width]);
+  const invTime = x.invert(mx);
+  const timeIndex = d3.bisectLeft(time, invTime);
+  const bpValue = d.values[timeIndex]?.toFixed(1);
+  const timeMin = (time[timeIndex] / 60).toFixed(1);
+
+  tooltip.html(`<strong>${d.group.includes('HS') ? 'High' : 'Low'} Salt</strong><br/>
                 ${d.id}<br/>
+                ${timeMin} min, ${bpValue} mmHg<br/>
                 <em>Click to isolate this rat</em>`)
-         .style("left", `${evt.pageX+12}px`)
-         .style("top",  `${evt.pageY-28}px`)
+         .style("left", `${evt.pageX + 12}px`)
+         .style("top", `${evt.pageY - 28}px`)
          .style("opacity", 1);
 }
+
 function hideTooltip(evt) {
   d3.select(evt.currentTarget).classed("hover", false);
   tooltip.style("opacity", 0);
@@ -349,32 +366,6 @@ while (rats.length < 4) {
   d3.select("#avg-pressure")  .text(`${avg}`);
   d3.select("#pressure-range").text(`${range}`);
   d3.select("#num-rats")      .text(rats.length);
-
-  /* ---- floating tooltip on mouse move ---- */
-  const mouseOverlay = g.selectAll(".mouse-overlay").data([null]);
-  
-  mouseOverlay.enter().append("rect")
-    .attr("class", "mouse-overlay")
-    .attr("width", width)
-    .attr("height", height)
-    .style("fill", "none")
-    .style("pointer-events", "all")
-    .on("mousemove", function(evt) {
-      const [xm] = d3.pointer(evt);
-      const timeSec = x.invert(xm);
-
-      const tooltipLines = rats.map(r => {
-        const idx = d3.bisector((_, i) => fullTime[i]).left(time, timeSec);
-        const val = r.values[idx] || r.values[r.values.length - 1];
-        return `${r.id}: ${val.toFixed(1)} mmHg`;
-      });
-
-      tooltip.html(`<strong>${(timeSec / 60).toFixed(2)} min</strong><br/>` + tooltipLines.join("<br/>"))
-             .style("left", `${evt.pageX + 12}px`)
-             .style("top", `${evt.pageY - 28}px`)
-             .style("opacity", 1);
-    })
-    .on("mouseleave", () => tooltip.style("opacity", 0));
 }
 </script>
 </body>
