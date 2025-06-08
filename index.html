@@ -104,6 +104,17 @@
     <button class="btn btn-both active" id="btn-both">Both</button>
   </div>
 
+  <div class="controls" id="rat-index-container" style="display: none;">
+  <label for="rat-index"><strong>Select Rat Index (0–4):</strong></label>
+  <select id="rat-index">
+    <option value="0">0</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+  </select>
+</div>
+
   <div class="time-controls">
     <div class="time-display" id="time-display">Showing: Full Timeline (0 - 10 minutes)</div>
     <div class="slider-container">
@@ -253,6 +264,7 @@ function initButtons() {
   d3.select("#btn-high").on("click",()=>switchView("high"));
   d3.select("#btn-low") .on("click",()=>switchView("low"));
   d3.select("#btn-both").on("click",()=>switchView("both"));
+  document.getElementById("rat-index").addEventListener("change", update);
 }
 function switchView(v) {
   view = v;
@@ -260,6 +272,8 @@ function switchView(v) {
   d3.selectAll(".btn").classed("active",false);
   d3.select(`#btn-${v==="high"?"high":v==="low"?"low":"both"}`)
     .classed("active",true);
+  const ratIndexDiv = document.getElementById("rat-index-container");
+  ratIndexDiv.style.display = v === "both" ? "block" : "none";
   update();
 }
 
@@ -286,27 +300,40 @@ function updateTimeDisplay() {
 /* ---------- draw/update ---------- */
 function update() {
   /* ---- decide which rats ---- */
-  const groups = view==="high" ? ["SS_HS","SSBN13_HS"]
-               : view==="low"  ? ["SS_LS","SSBN13_LS"]
-               :                 ["SS_HS","SS_LS","SSBN13_HS","SSBN13_LS"];
+  let rats = [];
 
-const buckets = groups.map(grp =>
-  Object.entries(allData[grp])
-        .map(([id, rat]) => ({
-            id:`${grp}_${id}`, group:grp,
-            values: rat.values.filter((_,k)=>k%20===0)
-        }))
-);
+if (view === "both") {
+  const index = +document.getElementById("rat-index").value;
+  const groups = ["SS_HS", "SS_LS", "SSBN13_HS", "SSBN13_LS"];
 
-// 2. round-robin pull items until you have 4
-let rats = [];
-let idx = 0;
-while (rats.length < 4) {
-  buckets.forEach(b => {
-    if (b[idx]) rats.push(b[idx]);
+  groups.forEach(grp => {
+    const key = `rat_${index}`;
+    if (allData[grp] && allData[grp][key]) {
+      rats.push({
+        id: `${grp}_${key}`,
+        group: grp,
+        values: allData[grp][key].values.filter((_, k) => k % 20 === 0)
+      });
+    }
   });
-  idx++;
+} else {
+  const groups = view === "high" ? ["SS_HS", "SSBN13_HS"] : ["SS_LS", "SSBN13_LS"];
+  const buckets = groups.map(grp =>
+    Object.entries(allData[grp]).map(([id, rat]) => ({
+      id: `${grp}_${id}`, group: grp,
+      values: rat.values.filter((_, k) => k % 20 === 0)
+    }))
+  );
+
+  let idx = 0;
+  while (rats.length < 2) {
+    buckets.forEach(b => {
+      if (b[idx]) rats.push(b[idx]);
+    });
+    idx++;
+  }
 }
+
 
   /* ---- scales ---- */
   const fullTime = allData.time.filter((_,k)=>k%20===0);
