@@ -296,10 +296,6 @@ const buckets = groups.map(grp =>
         }))
 );
 
-const selectedRats = Array.from(document.querySelectorAll(".rat-picker"))
-  .map(sel => sel.value)
-  .filter(Boolean);
-
 let rats = [];
 let idx = 0;
 while ((view === "both" && rats.length < 4) || (view !== "both" && rats.length < 2)) {
@@ -314,19 +310,6 @@ while ((view === "both" && rats.length < 4) || (view !== "both" && rats.length <
     }
   });
   idx++;
-}
-
-const showAvg = d3.select("#show-average").property("checked");
-
-if (showAvg && rats.length > 0) {
-  const avgValues = rats[0].values.map((_, i) =>
-    d3.mean(rats.map(r => r.values[i]))
-  );
-  rats.push({
-    id: "Average",
-    group: "Average",
-    values: avgValues
-  });
 }
 
   /* ---- scales ---- */
