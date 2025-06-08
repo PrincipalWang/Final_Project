@@ -104,12 +104,6 @@
     <button class="btn btn-both active" id="btn-both">Both</button>
   </div>
 
-  <div class="controls" id="rat-selectors"></div>
-
-  <div class="controls">
-      <label><input type="checkbox" id="show-average"> Show Average Line</label>
-  </div>
-
   <div class="time-controls">
     <div class="time-display" id="time-display">Showing: Full Timeline (0 - 10 minutes)</div>
     <div class="slider-container">
@@ -231,7 +225,6 @@ d3.json("final_rat_data.json").then(data => {
   initAxes();
   initButtons();
   initTimeSlider();
-  createRatSelectors();
   update();        // initial draw
 });
 
@@ -267,30 +260,7 @@ function switchView(v) {
     .classed("active",true);
   update();
 }
-function createRatSelectors() {
-  const container = d3.select("#rat-selectors");
-  container.html("");
 
-  const groups = view === "high" ? ["SS_HS", "SSBN13_HS"]
-              : view === "low"  ? ["SS_LS", "SSBN13_LS"]
-              : ["SS_HS", "SS_LS", "SSBN13_HS", "SSBN13_LS"];
-
-  const ratsInView = groups.flatMap(grp =>
-    Object.keys(allData[grp]).map(r => `${grp}_${r}`)
-  );
-
-  for (let i = 0; i < 3; i++) {
-    const sel = container.append("label").text(`Rat ${i + 1}: `)
-      .append("select").attr("class", "rat-picker").style("margin", "5px");
-
-    ratsInView.forEach(rid => {
-      sel.append("option").attr("value", rid).text(rid);
-    });
-
-    sel.property("selectedIndex", i);
-    sel.on("change", update);
-  }
-}
 /* ---------- time slider ---------- */
 function initTimeSlider() {
   d3.select("#time-slider").on("input", function() {
@@ -330,15 +300,21 @@ const selectedRats = Array.from(document.querySelectorAll(".rat-picker"))
   .map(sel => sel.value)
   .filter(Boolean);
 
-let rats = selectedRats.map(fullID => {
-  const [grp, ...restParts] = fullID.split("_");
-  const ratID = restParts.join("_"); // 支持 rat_10 这类
-  return {
-    id: fullID,
-    group: grp,
-    values: allData[grp][ratID].values.filter((_, k) => k % 20 === 0)
-  };
-});
+let rats = [];
+let idx = 0;
+while ((view === "both" && rats.length < 4) || (view !== "both" && rats.length < 2)) {
+  groups.forEach(grp => {
+    const keys = Object.keys(allData[grp]);
+    if (idx < keys.length) {
+      rats.push({
+        id: `${grp}_${keys[idx]}`,
+        group: grp,
+        values: allData[grp][keys[idx]].values.filter((_, k) => k % 20 === 0)
+      });
+    }
+  });
+  idx++;
+}
 
 const showAvg = d3.select("#show-average").property("checked");
 
@@ -352,7 +328,6 @@ if (showAvg && rats.length > 0) {
     values: avgValues
   });
 }
-
 
   /* ---- scales ---- */
   const fullTime = allData.time.filter((_,k)=>k%20===0);
