@@ -331,7 +331,7 @@ if (view === "both") {
 
   ids.forEach(({ group, selector }) => {
     const chosen = d3.select(selector).node().value;
-    const rat = allData[group][chosen];
+    const rat = allData[group][String(chosen)];
     if (rat) {
       rats.push({
         id: `${group}_${chosen}`, group,
