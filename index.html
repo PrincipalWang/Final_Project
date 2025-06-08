@@ -349,6 +349,32 @@ while (rats.length < 4) {
   d3.select("#avg-pressure")  .text(`${avg}`);
   d3.select("#pressure-range").text(`${range}`);
   d3.select("#num-rats")      .text(rats.length);
+
+  /* ---- floating tooltip on mouse move ---- */
+  const mouseOverlay = g.selectAll(".mouse-overlay").data([null]);
+  
+  mouseOverlay.enter().append("rect")
+    .attr("class", "mouse-overlay")
+    .attr("width", width)
+    .attr("height", height)
+    .style("fill", "none")
+    .style("pointer-events", "all")
+    .on("mousemove", function(evt) {
+      const [xm] = d3.pointer(evt);
+      const timeSec = x.invert(xm);
+
+      const tooltipLines = rats.map(r => {
+        const idx = d3.bisector((_, i) => fullTime[i]).left(time, timeSec);
+        const val = r.values[idx] || r.values[r.values.length - 1];
+        return `${r.id}: ${val.toFixed(1)} mmHg`;
+      });
+
+      tooltip.html(`<strong>${(timeSec / 60).toFixed(2)} min</strong><br/>` + tooltipLines.join("<br/>"))
+             .style("left", `${evt.pageX + 12}px`)
+             .style("top", `${evt.pageY - 28}px`)
+             .style("opacity", 1);
+    })
+    .on("mouseleave", () => tooltip.style("opacity", 0));
 }
 </script>
 </body>
