@@ -24,8 +24,8 @@
   /* ---- time slider ---- */
   .time-controls {
     text-align:center; 
-    margin:10px 0; 
-    padding:10px; 
+    margin-top:5px;
+    margin-bottom: 100px;
     background:#f8f9fa; 
     border-radius:8px;
   }
@@ -104,7 +104,14 @@
 <body>
 <div class="container">
   <h1>Genetic Engineering Can't Save You From Salt</h1>
-  <p class="subtitle">Interactive exploration of how salt affects blood pressure in laboratory rats</p>
+  <p class="subtitle" style="text-align:center; width:auto; margin:0 auto; padding:10px 0; max-width:900px;">
+    This interactive visualization displays continuous blood pressure recordings for 9 Dahl SS rats and 6 Dahl SS.13BN rats, under high and low salt conditions. 
+    Use various controls to explore how salt affects blood pressure in laboratory rats. 
+  </p>
+
+  <p style="text-align:center; font-size:14px; color:#666; width:auto; max-width:900px; margin:0 auto; padding:10px 0;">
+    Click on the buttons to see data for rats on a high salt diet, low salt diet, or both diets.
+  </p>    
 
   <div class="controls">
     <button class="btn btn-high-salt" id="btn-high">High Salt Diet</button>
@@ -123,11 +130,13 @@
   </select>
 </div>
 
+  <p style="text-align:center; font-size:14px; color:#666; width:auto; margin-top:20px">
+      This panel shows summary statistics for the blood pressure data currently displayed in the plot below.
+  </p> 
 
-
-  
 
   <div class="stats-panel">
+
     <div class="stat-box">
       <div class="stat-value" id="pressure-avg">--</div>
       <div class="stat-label">Average (mmHg)</div>
@@ -150,12 +159,23 @@
     </div>
   </div>
 
+  <p style="text-align:center; font-size:14px; color:#666; width:auto;  margin-top:20px">
+    Click on a line to isolate it and see its data in detail. Hover over a line to see the blood pressure at that time point.
+  </p> 
+
   
   <div class="plot">
     <svg width="960" height="500"></svg>
   </div>
 
-    <div class="time-controls">
+  
+
+  <div class="time-controls">
+
+    <p style="text-align:center; font-size:14px; color:#666; width:auto; max-width:900px; margin:0 auto; padding:10px 0;">
+    Use the slider to adjust the time range displayed.
+    </p> 
+
     <div class="time-display" id="time-display">Showing: Full Timeline (0 - 10 minutes)</div>
     <div class="slider-container">
       <input type="range" id="time-slider" class="time-slider" 
@@ -171,7 +191,7 @@
   </div>
 
 
-  <footer>
+  <footer style="background:#ecf0f1; padding:20px; border-radius:8px; margin-top:30px;">
     <p style="text-align:center; font-size:12px; color:#666;">
       Visualization by John Collins, Chen Wang, and Michael Yang
       <br>
